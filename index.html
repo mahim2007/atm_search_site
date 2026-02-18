@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATM Search Bangladesh</title>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:linear-gradient(135deg,#4facfe,#00f2fe);
+  min-height:100vh;
+  padding:20px;
+  color:white;
+}
+
+.container{
+  max-width:700px;
+  margin:auto;
+}
+
+h1{
+  text-align:center;
+  margin-bottom:20px;
+}
+
+.glass{
+  background:rgba(255,255,255,0.2);
+  backdrop-filter:blur(12px);
+  border-radius:15px;
+  padding:12px;
+  margin:10px 0;
+  border:1px solid rgba(255,255,255,0.3);
+}
+
+input,select{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:rgba(255,255,255,0.3);
+  color:white;
+  font-size:16px;
+}
+
+input::placeholder{
+  color:rgba(255,255,255,0.8);
+}
+
+.card{
+  background:rgba(255,255,255,0.25);
+  backdrop-filter:blur(10px);
+  border-radius:15px;
+  padding:12px;
+  margin-top:10px;
+  border:1px solid rgba(255,255,255,0.3);
+}
+
+.count{
+  margin-top:10px;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>ATM Search Bangladesh</h1>
+
+<div class="glass">
+<input type="text" id="search" placeholder="Search district, upazila, bank...">
+</div>
+
+<div class="glass">
+<select id="filter">
+<option value="all">All ATM</option>
+<option value="unknown">Unknown Location ATM</option>
+</select>
+</div>
+
+<div class="count" id="count">Loading...</div>
+<div id="results"></div>
+
+</div>
+
+<script>
+
+let atmData=[];
+
+fetch("data.json")
+.then(res=>res.json())
+.then(data=>{
+  atmData=data;
+  show(data);
+})
+.catch(()=>{
+  document.getElementById("count").innerText="Error loading data.json";
+});
+
+document.getElementById("search").oninput=filter;
+document.getElementById("filter").onchange=filter;
+
+function filter(){
+
+ let text=document.getElementById("search").value.toLowerCase();
+ let mode=document.getElementById("filter").value;
+
+ let result=atmData.filter(a=>{
+
+   let bank=a.Bank||"";
+   let atm=a.ATM_No||"";
+   let loc=a.Location||"";
+
+   let full=(bank+" "+atm+" "+loc).toLowerCase();
+
+   if(mode=="unknown"){
+     return loc.trim()=="" && full.includes(text);
+   }
+
+   return full.includes(text);
+
+ });
+
+ show(result);
+
+}
+
+function show(list){
+
+ document.getElementById("count").innerText=
+ "Total ATM Found: "+list.length;
+
+ let html="";
+
+ list.forEach(a=>{
+
+ html+=`
+ <div class="card">
+ <b>${a.Bank||"Unknown Bank"}</b><br>
+ ATM No: ${a.ATM_No||"N/A"}<br>
+ Location: ${a.Location||"Unknown Location"}
+ </div>
+ `;
+
+ });
+
+ document.getElementById("results").innerHTML=html;
+
+}
+
+</script>
+
+</body>
+</html>
