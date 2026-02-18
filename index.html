@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATM Search Bangladesh</title>
+<style>
+body { font-family: Arial, sans-serif; padding: 15px; background: #f4f6f8; }
+h2 { text-align: center; }
+input, select { width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; }
+.card { background: white; padding: 10px; margin: 8px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.count { font-weight: bold; margin: 10px 0; }
+</style>
+</head>
+<body>
+
+<h2>ATM Search Bangladesh</h2>
+
+<input type="text" id="searchBox" placeholder="Search district, upazila, bank, location...">
+
+<select id="filter">
+<option value="all">All ATM</option>
+<option value="unknown">Unknown Location ATM</option>
+</select>
+
+<div class="count" id="count"></div>
+<div id="results"></div>
+
+<script>
+let atmData = [];
+
+fetch('data.json')
+.then(res => res.json())
+.then(data => {
+    atmData = data;
+    displayResults(data);
+});
+
+document.getElementById("searchBox").addEventListener("input", filterData);
+document.getElementById("filter").addEventListener("change", filterData);
+
+function filterData() {
+    let search = document.getElementById("searchBox").value.toLowerCase();
+    let filter = document.getElementById("filter").value;
+
+    let filtered = atmData.filter(atm => {
+        let text = Object.values(atm).join(" ").toLowerCase();
+        let matchSearch = text.includes(search);
+
+        let unknown = !atm.Location || atm.Location.length < 5;
+
+        if (filter === "unknown") return unknown && matchSearch;
+        return matchSearch;
+    });
+
+    displayResults(filtered);
+}
+
+function displayResults(list) {
+    document.getElementById("count").innerText = "Total ATM Found: " + list.length;
+    let html = "";
+    list.forEach(atm => {
+        html += `<div class="card">
+            <b>${atm.Bank}</b><br>
+            ATM No: ${atm.ATM_No}<br>
+            Location: ${atm.Location}
+        </div>`;
+    });
+    document.getElementById("results").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
