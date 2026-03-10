@@ -1,0 +1,283 @@
+<!DOCTYPE html><html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Q-Cash ATM Finder</title><style>
+
+body{
+font-family: Arial, sans-serif;
+background:#eef2f7;
+margin:0;
+padding:20px;
+}
+
+.container{
+max-width:900px;
+margin:auto;
+}
+
+.title{
+font-size:32px;
+font-weight:bold;
+margin-bottom:20px;
+}
+
+.searchBox{
+width:100%;
+padding:14px;
+font-size:18px;
+border-radius:10px;
+border:2px solid #e0a800;
+outline:none;
+}
+
+.suggestBox{
+background:white;
+border-radius:10px;
+margin-top:5px;
+box-shadow:0 3px 8px rgba(0,0,0,0.1);
+max-height:200px;
+overflow:auto;
+}
+
+.suggestItem{
+padding:12px;
+cursor:pointer;
+border-bottom:1px solid #eee;
+}
+
+.suggestItem:hover{
+background:#f3f3f3;
+}
+
+.total{
+margin-top:15px;
+font-size:22px;
+font-weight:bold;
+}
+
+.card{
+background:white;
+padding:16px;
+margin-top:14px;
+border-radius:12px;
+box-shadow:0 3px 8px rgba(0,0,0,0.08);
+display:flex;
+gap:12px;
+}
+
+.logo{
+width:40px;
+height:40px;
+border-radius:6px;
+object-fit:contain;
+}
+
+.content{
+flex:1;
+}
+
+.bank{
+font-weight:bold;
+font-size:18px;
+margin-bottom:6px;
+}
+
+.location{
+color:#1a73e8;
+cursor:pointer;
+text-decoration:underline;
+margin-bottom:6px;
+}
+
+.district{
+color:#333;
+font-size:18px;
+font-weight:bold;
+}
+
+.loadMore{
+margin-top:20px;
+padding:12px;
+font-size:16px;
+border:none;
+border-radius:8px;
+background:#e0a800;
+color:white;
+width:100%;
+cursor:pointer;
+}
+
+.summaryBox{
+background:white;
+margin-top:25px;
+padding:16px;
+border-radius:12px;
+box-shadow:0 3px 8px rgba(0,0,0,0.08);
+}
+
+.summaryTitle{
+font-size:20px;
+font-weight:bold;
+margin-bottom:10px;
+}
+
+.summary{
+line-height:1.8;
+font-weight:bold;
+}
+
+</style></head><body><div class="container"><div class="title">🏧 Q-Cash ATM Finder</div><input id="search" class="searchBox" placeholder="🔎 Search district..." onkeyup="suggestDistrict()"><div id="suggestBox" class="suggestBox"></div><div id="total" class="total"></div><div id="results"></div><div id="summaryBox" class="summaryBox" style="display:none;">
+<div class="summaryTitle">🏦 Bank-wise ATM Count</div>
+<div id="summary" class="summary"></div>
+</div></div><script>
+
+let data=[];
+let districts=[];
+let visibleLimit=50;
+let currentResults=[];
+
+fetch("atm_data.json")
+.then(r=>r.json())
+.then(d=>{
+data=d;
+districts=[...new Set(data.map(a=>a.district))];
+});
+
+function suggestDistrict(){
+
+let input=document.getElementById("search").value.toLowerCase();
+let box=document.getElementById("suggestBox");
+
+if(input.length<1){
+box.innerHTML="";
+return;
+}
+
+let matches=districts.filter(d=>d.toLowerCase().startsWith(input));
+
+let html="";
+
+matches.forEach(d=>{
+html+=`<div class="suggestItem" onclick="selectDistrict('${d}')">${d}</div>`;
+});
+
+box.innerHTML=html;
+
+}
+
+function selectDistrict(d){
+
+document.getElementById("search").value=d;
+document.getElementById("suggestBox").innerHTML="";
+visibleLimit=50;
+
+search();
+
+}
+
+function getBankDomain(bank){
+
+bank=bank.toLowerCase();
+
+if(bank.includes("agrani")) return "agranibank.org";
+if(bank.includes("sonali")) return "sonalibank.com.bd";
+if(bank.includes("janata")) return "janatabank-bd.com";
+if(bank.includes("rupali")) return "rupalibank.org";
+if(bank.includes("jamuna")) return "jamunabankbd.com";
+if(bank.includes("mercantile")) return "mercantilebank.com.bd";
+if(bank.includes("nrbc")) return "nrbcommercialbank.com";
+if(bank.includes("shahjalal")) return "sjiblbd.com";
+if(bank.includes("first security")) return "fsiblbd.com";
+
+return "bank.com";
+
+}
+
+function search(){
+
+let q=document.getElementById("search").value.toLowerCase();
+
+currentResults=data.filter(a=>a.district.toLowerCase()==q);
+
+renderResults();
+
+}
+
+function renderResults(){
+
+let results="";
+let bankCount={};
+let totalATM=currentResults.length;
+
+let slice=currentResults.slice(0,visibleLimit);
+
+slice.forEach(a=>{
+
+let mapLink="https://www.google.com/maps/search/"+encodeURIComponent(a.location);
+
+let domain=getBankDomain(a.bank);
+let logo="https://logo.clearbit.com/"+domain;
+
+results+=`
+
+<div class="card">
+
+<img class="logo" src="${logo}" onerror="this.style.display='none'">
+
+<div class="content">
+
+<div class="bank">🏦 ${a.bank}</div>
+
+<div class="location" onclick="window.open('${mapLink}','_blank')">📍 ${a.location}</div>
+
+<div class="district">📌 ${a.district}</div>
+
+</div>
+
+</div>
+
+`;
+
+bankCount[a.bank]=(bankCount[a.bank]||0)+1;
+
+});
+
+if(currentResults.length>visibleLimit){
+
+results+=`<button class="loadMore" onclick="loadMore()">Load More ATM</button>`;
+
+}
+
+document.getElementById("results").innerHTML=results;
+
+document.getElementById("total").innerHTML="🏧 Total ATM in this district: "+totalATM;
+
+let summary="";
+
+for(let b in bankCount){
+summary+=b+" : "+bankCount[b]+" ATM<br>";
+}
+
+if(summary.length>0){
+
+document.getElementById("summary").innerHTML=summary;
+document.getElementById("summaryBox").style.display="block";
+
+}else{
+
+document.getElementById("summaryBox").style.display="none";
+
+}
+
+}
+
+function loadMore(){
+
+visibleLimit+=50;
+
+renderResults();
+
+}
+
+</script></body>
+</html>
